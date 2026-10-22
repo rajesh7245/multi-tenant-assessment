@@ -40,95 +40,210 @@ function Signup() {
       setTimeout(() => {
         navigate("/signin");
       }, 1000);
-
     } catch (err) {
       setError(
         err.response?.data?.message ||
-        "Signup failed"
+          "Signup failed"
       );
     }
   };
 
   return (
-    <div style={{ maxWidth: "500px", margin: "40px auto" }}>
-      <h1>Organization Signup</h1>
+    <div className="auth-page">
 
-      {message && (
-        <p style={{ color: "green" }}>
-          {message}
-        </p>
-      )}
+      {/* TOP BAR */}
+      <header className="auth-topbar">
 
-      {error && (
-        <p style={{ color: "red" }}>
-          {error}
-        </p>
-      )}
+        <Link to="/" className="brand">
+          <div className="brand-mark">M</div>
 
-      <form onSubmit={handleSubmit}>
+          <div>
+            <strong>MultiTenant</strong>
+            <small>Organization Platform</small>
+          </div>
+        </Link>
 
-        <input
-          name="organizationId"
-          placeholder="Organization ID"
-          value={form.organizationId}
-          onChange={handleChange}
-          required
-        />
+        <Link to="/" className="back-link">
+          ← Back to home
+        </Link>
 
-        <br /><br />
+      </header>
 
-        <input
-          name="organizationName"
-          placeholder="Organization Name"
-          value={form.organizationName}
-          onChange={handleChange}
-          required
-        />
+      {/* MAIN */}
+      <main className="auth-main">
 
-        <br /><br />
+        {/* LEFT PANEL */}
+        <section className="auth-brand-panel">
 
-        <input
-          name="name"
-          placeholder="Admin Name"
-          value={form.name}
-          onChange={handleChange}
-          required
-        />
+          <div className="auth-panel-content">
 
-        <br /><br />
+            <div className="pill">
+              <span className="live-dot"></span>
+              MULTI-TENANT PLATFORM
+            </div>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          required
-        />
+            <h1>
+              Build your organization
+              <br />
+              smarter.
+            </h1>
 
-        <br /><br />
+            <p>
+              Create your organization and get a dedicated
+              workspace for managing products, employees,
+              roles and customer orders.
+            </p>
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          required
-        />
+            <div className="side-points">
 
-        <br /><br />
+              <div>
+                <span>✓</span>
+                Dedicated organization database
+              </div>
 
-        <button type="submit">
-          Create Organization
-        </button>
-      </form>
+              <div>
+                <span>✓</span>
+                Secure role-based access
+              </div>
 
-      <br />
+              <div>
+                <span>✓</span>
+                Product and order management
+              </div>
 
-      <Link to="/signin">
-        Already have an account? Sign in
-      </Link>
+              <div>
+                <span>✓</span>
+                Built for growing teams
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* FORM */}
+        <section className="auth-card-wrap">
+
+          <div className="auth-card">
+
+            <div className="auth-heading">
+
+              <span className="section-eyebrow">
+                GET STARTED
+              </span>
+
+              <h2>
+                Create your organization
+              </h2>
+
+              <p>
+                Set up your organization account in a few simple steps.
+              </p>
+
+            </div>
+
+            <form
+              className="auth-form"
+              onSubmit={handleSubmit}
+            >
+
+              {message && (
+                <div className="alert success">
+                  {message}
+                </div>
+              )}
+
+              {error && (
+                <div className="alert error">
+                  {error}
+                </div>
+              )}
+
+              <label className="field">
+                <span>Organization ID</span>
+
+                <input
+                  name="organizationId"
+                  placeholder="e.g. ORG-1001"
+                  value={form.organizationId}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span>Organization Name</span>
+
+                <input
+                  name="organizationName"
+                  placeholder="Your company name"
+                  value={form.organizationName}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span>Admin Name</span>
+
+                <input
+                  name="name"
+                  placeholder="Your full name"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span>Email Address</span>
+
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="you@company.com"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span>Password</span>
+
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Create a secure password"
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+
+              <button
+                type="submit"
+                className="button button-primary auth-submit"
+              >
+                Create Organization →
+              </button>
+
+              <p className="auth-switch">
+                Already have an account?{" "}
+                <Link to="/signin">
+                  Sign in
+                </Link>
+              </p>
+
+            </form>
+
+          </div>
+
+        </section>
+
+      </main>
+
     </div>
   );
 }

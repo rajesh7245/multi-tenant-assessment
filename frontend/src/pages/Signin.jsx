@@ -31,82 +31,204 @@ function Signin() {
         form
       );
 
-      localStorage.setItem("token", response.data.token);
-
       localStorage.setItem(
-        "organization",
-        JSON.stringify(response.data.organization)
+        "token",
+        response.data.token
       );
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify(response.data.user)
-      );
+      const user = response.data.user;
+
+localStorage.setItem(
+  "organization",
+  JSON.stringify({
+    organizationId: response.data.user.organizationId,
+    name: response.data.user.organizationName,
+    organizationName: response.data.user.organizationName,
+    databaseName: response.data.user.databaseName
+  })
+);
+
+localStorage.setItem(
+  "user",
+  JSON.stringify(user)
+);
 
       navigate("/dashboard");
 
     } catch (err) {
       setError(
         err.response?.data?.message ||
-        "Signin failed"
+          "Signin failed"
       );
     }
   };
 
   return (
-    <div style={{ maxWidth: "500px", margin: "40px auto" }}>
-      <h1>Organization Signin</h1>
+    <div className="auth-page">
 
-      {error && (
-        <p style={{ color: "red" }}>
-          {error}
-        </p>
-      )}
+      {/* TOP BAR */}
+      <header className="auth-topbar">
 
-      <form onSubmit={handleSubmit}>
+        <Link to="/" className="brand">
+          <div className="brand-mark">M</div>
 
-        <input
-          name="organizationId"
-          placeholder="Organization ID"
-          value={form.organizationId}
-          onChange={handleChange}
-          required
-        />
+          <div>
+            <strong>MultiTenant</strong>
+            <small>Organization Platform</small>
+          </div>
+        </Link>
 
-        <br /><br />
+        <Link to="/" className="back-link">
+          ← Back to home
+        </Link>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          required
-        />
+      </header>
 
-        <br /><br />
+      {/* MAIN */}
+      <main className="auth-main signin-layout">
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          required
-        />
+        {/* FORM */}
+        <section className="auth-card-wrap">
 
-        <br /><br />
+          <div className="auth-card">
 
-        <button type="submit">
-          Sign In
-        </button>
-      </form>
+            <div className="auth-heading">
 
-      <br />
+              <span className="section-eyebrow">
+                WELCOME BACK
+              </span>
 
-      <Link to="/signup">
-        Create organization
-      </Link>
+              <h2>
+                Sign in to your account
+              </h2>
+
+              <p>
+                Access your organization's secure workspace.
+              </p>
+
+            </div>
+
+            <form
+              className="auth-form"
+              onSubmit={handleSubmit}
+            >
+
+              {error && (
+                <div className="alert error">
+                  {error}
+                </div>
+              )}
+
+              <label className="field">
+                <span>Organization ID</span>
+
+                <input
+                  name="organizationId"
+                  placeholder="e.g. ORG-1001"
+                  value={form.organizationId}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span>Email Address</span>
+
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="you@company.com"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span>Password</span>
+
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Enter your password"
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+
+              <button
+                type="submit"
+                className="button button-primary auth-submit"
+              >
+                Sign In →
+              </button>
+
+              <p className="auth-switch">
+                Don't have an account?{" "}
+                <Link to="/signup">
+                  Create organization
+                </Link>
+              </p>
+
+            </form>
+
+          </div>
+
+        </section>
+
+        {/* RIGHT PANEL */}
+        <section className="auth-brand-panel">
+
+          <div className="auth-panel-content">
+
+            <div className="pill">
+              <span className="live-dot"></span>
+              SECURE WORKSPACE
+            </div>
+
+            <h1>
+              Welcome back.
+              <br />
+              Your business awaits.
+            </h1>
+
+            <p>
+              Sign in to manage your products, employees,
+              customer orders and organization operations
+              from one secure workspace.
+            </p>
+
+            <div className="side-points">
+
+              <div>
+                <span>✓</span>
+                Secure organization access
+              </div>
+
+              <div>
+                <span>✓</span>
+                Role-based permissions
+              </div>
+
+              <div>
+                <span>✓</span>
+                Manage products and inventory
+              </div>
+
+              <div>
+                <span>✓</span>
+                Track and manage customer orders
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+      </main>
+
     </div>
   );
 }
