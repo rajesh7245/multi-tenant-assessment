@@ -1,0 +1,16 @@
+CREATE TABLE tenants (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  database_name VARCHAR(63) UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (tenant_id, email)
+);
