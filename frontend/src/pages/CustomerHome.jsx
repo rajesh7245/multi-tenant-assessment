@@ -39,6 +39,10 @@ function CustomerHome() {
   const handleLogout = () => {
     localStorage.removeItem("customerToken");
     localStorage.removeItem("customer");
+    localStorage.removeItem("customerUser");
+    localStorage.removeItem("selectedOrganization");
+
+    setCustomer({});
 
     navigate("/");
   };
@@ -165,6 +169,7 @@ function CustomerHome() {
                 </Link>
 
                 <button
+                  type="button"
                   onClick={handleLogout}
                   style={{
                     padding: "9px 15px",
@@ -519,6 +524,7 @@ function CustomerHome() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={() =>
                     openOrganization(organization)
                   }

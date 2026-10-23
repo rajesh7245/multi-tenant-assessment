@@ -1,4 +1,7 @@
+
 const { Client } = require("pg");
+const jwt = require("jsonwebtoken");
+const masterPool = require("../config/db");
 
 function getTenantClient(databaseName) {
   if (!databaseName) {
@@ -16,6 +19,63 @@ function getTenantClient(databaseName) {
   });
 }
 
+// =========================
+// GET STAFF FROM TOKEN
+// =========================
+
+function getStaffFromToken(req) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new Error("Staff authentication required");
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "assessment-secret"
+    );
+
+    if (!decoded || !decoded.role || !decoded.tenantId) {
+      throw new Error("Invalid staff token");
+    }
+
+    return decoded;
+  } catch (error) {
+    throw new Error("Invalid staff token");
+  }
+}
+
+// =========================
+// VERIFY ADMIN + TENANT
+// =========================
+
+async function verifyAdminTenantAccess(req, databaseName) {
+  const staff = getStaffFromToken(req);
+
+  if (staff.role !== "admin") {
+    throw new Error("Only Admin can manage employees");
+  }
+
+  const result = await masterPool.query(
+    `SELECT database_name
+     FROM tenants
+     WHERE id = $1`,
+    [staff.tenantId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("Organization not found");
+  }
+
+  if (result.rows[0].database_name !== databaseName) {
+    throw new Error("Unauthorized organization access");
+  }
+
+  return staff;
+}
 
 // =========================
 // GET ROLES
@@ -61,9 +121,9 @@ async function getRoles(req, res) {
   }
 }
 
-
 // =========================
 // CREATE EMPLOYEE
+// ADMIN ONLY
 // =========================
 
 async function createEmployee(req, res) {
@@ -89,6 +149,9 @@ async function createEmployee(req, res) {
         message: "All employee fields are required"
       });
     }
+
+    // IMPORTANT: Only Admin can create employees
+    await verifyAdminTenantAccess(req, databaseName);
 
     client = getTenantClient(databaseName);
     await client.connect();
@@ -118,6 +181,36 @@ async function createEmployee(req, res) {
   } catch (error) {
     console.error("Create employee error:", error);
 
+    if (error.message === "Staff authentication required") {
+      return res.status(401).json({
+        message: error.message
+      });
+    }
+
+    if (error.message === "Invalid staff token") {
+      return res.status(401).json({
+        message: error.message
+      });
+    }
+
+    if (error.message === "Only Admin can manage employees") {
+      return res.status(403).json({
+        message: error.message
+      });
+    }
+
+    if (error.message === "Organization not found") {
+      return res.status(401).json({
+        message: error.message
+      });
+    }
+
+    if (error.message === "Unauthorized organization access") {
+      return res.status(403).json({
+        message: error.message
+      });
+    }
+
     if (error.code === "23505") {
       return res.status(409).json({
         message: "Employee email already exists"
@@ -136,7 +229,6 @@ async function createEmployee(req, res) {
   }
 }
 
-
 // =========================
 // GET EMPLOYEES
 // =========================
@@ -150,6 +242,28 @@ async function getEmployees(req, res) {
     if (!databaseName) {
       return res.status(400).json({
         message: "databaseName is required"
+      });
+    }
+
+    const staff = getStaffFromToken(req);
+
+    // Only users belonging to this organization can view employees
+    const tenantResult = await masterPool.query(
+      `SELECT database_name
+       FROM tenants
+       WHERE id = $1`,
+      [staff.tenantId]
+    );
+
+    if (tenantResult.rows.length === 0) {
+      return res.status(401).json({
+        message: "Organization not found"
+      });
+    }
+
+    if (tenantResult.rows[0].database_name !== databaseName) {
+      return res.status(403).json({
+        message: "Unauthorized organization access"
       });
     }
 
@@ -178,6 +292,15 @@ async function getEmployees(req, res) {
   } catch (error) {
     console.error("Get employees error:", error);
 
+    if (
+      error.message === "Staff authentication required" ||
+      error.message === "Invalid staff token"
+    ) {
+      return res.status(401).json({
+        message: error.message
+      });
+    }
+
     res.status(500).json({
       message: "Failed to get employees",
       error: error.message
@@ -190,9 +313,9 @@ async function getEmployees(req, res) {
   }
 }
 
-
 // =========================
 // DELETE EMPLOYEE
+// ADMIN ONLY
 // =========================
 
 async function deleteEmployee(req, res) {
@@ -207,6 +330,9 @@ async function deleteEmployee(req, res) {
         message: "databaseName is required"
       });
     }
+
+    // IMPORTANT: Only Admin can delete employees
+    await verifyAdminTenantAccess(req, databaseName);
 
     client = getTenantClient(databaseName);
     await client.connect();
@@ -232,6 +358,33 @@ async function deleteEmployee(req, res) {
   } catch (error) {
     console.error("Delete employee error:", error);
 
+    if (
+      error.message === "Staff authentication required" ||
+      error.message === "Invalid staff token"
+    ) {
+      return res.status(401).json({
+        message: error.message
+      });
+    }
+
+    if (error.message === "Only Admin can manage employees") {
+      return res.status(403).json({
+        message: error.message
+      });
+    }
+
+    if (error.message === "Organization not found") {
+      return res.status(401).json({
+        message: error.message
+      });
+    }
+
+    if (error.message === "Unauthorized organization access") {
+      return res.status(403).json({
+        message: error.message
+      });
+    }
+
     res.status(500).json({
       message: "Failed to delete employee",
       error: error.message
@@ -243,7 +396,6 @@ async function deleteEmployee(req, res) {
     }
   }
 }
-
 
 module.exports = {
   getRoles,

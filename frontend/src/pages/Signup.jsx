@@ -17,9 +17,23 @@ function Signup() {
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // Organization ID: allow ONLY letters and numbers
+    if (name === "organizationId") {
+      const alphaNumericValue = value.replace(/[^a-zA-Z0-9]/g, "");
+
+      setForm({
+        ...form,
+        [name]: alphaNumericValue
+      });
+
+      return;
+    }
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -28,6 +42,14 @@ function Signup() {
 
     setMessage("");
     setError("");
+
+    // Final frontend validation
+    if (!/^[A-Za-z0-9]+$/.test(form.organizationId)) {
+      setError(
+        "Organization ID must contain only letters and numbers."
+      );
+      return;
+    }
 
     try {
       const response = await axios.post(
@@ -160,18 +182,27 @@ function Signup() {
                 </div>
               )}
 
+              {/* ORGANIZATION ID */}
               <label className="field">
                 <span>Organization ID</span>
 
                 <input
                   name="organizationId"
-                  placeholder="e.g. ORG-1001"
+                  placeholder="e.g. ORG1001"
                   value={form.organizationId}
                   onChange={handleChange}
+                  pattern="[A-Za-z0-9]+"
+                  title="Organization ID can contain only letters and numbers."
+                  maxLength={100}
                   required
                 />
+
+                <small>
+                  Use letters and numbers only. No spaces or special characters.
+                </small>
               </label>
 
+              {/* ORGANIZATION NAME */}
               <label className="field">
                 <span>Organization Name</span>
 
@@ -180,10 +211,12 @@ function Signup() {
                   placeholder="Your company name"
                   value={form.organizationName}
                   onChange={handleChange}
+                  maxLength={150}
                   required
                 />
               </label>
 
+              {/* ADMIN NAME */}
               <label className="field">
                 <span>Admin Name</span>
 
@@ -192,10 +225,12 @@ function Signup() {
                   placeholder="Your full name"
                   value={form.name}
                   onChange={handleChange}
+                  maxLength={100}
                   required
                 />
               </label>
 
+              {/* EMAIL */}
               <label className="field">
                 <span>Email Address</span>
 
@@ -209,6 +244,7 @@ function Signup() {
                 />
               </label>
 
+              {/* PASSWORD */}
               <label className="field">
                 <span>Password</span>
 
@@ -218,6 +254,7 @@ function Signup() {
                   placeholder="Create a secure password"
                   value={form.password}
                   onChange={handleChange}
+                  minLength={6}
                   required
                 />
               </label>

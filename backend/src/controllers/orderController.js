@@ -1,6 +1,8 @@
 const { Client } = require("pg");
 const jwt = require("jsonwebtoken");
 
+const masterPool = require("../config/db");
+
 function getTenantClient(databaseName) {
   if (!databaseName) {
     throw new Error("databaseName is required");
@@ -17,6 +19,73 @@ function getTenantClient(databaseName) {
   });
 }
 
+
+// =========================
+// GET STAFF FROM TOKEN
+// =========================
+
+function getStaffFromToken(req) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new Error("Staff authentication required");
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  let decoded;
+
+  try {
+    decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "assessment-secret"
+    );
+  } catch (error) {
+    throw new Error("Invalid staff token");
+  }
+
+  if (
+    !decoded ||
+    !decoded.role ||
+    decoded.type === "customer"
+  ) {
+    throw new Error("Invalid staff token");
+  }
+
+  return decoded;
+}
+
+
+// =========================
+// VERIFY STAFF TENANT ACCESS
+// =========================
+
+async function verifyStaffTenantAccess(staff, databaseName) {
+  if (!staff.tenantId) {
+    throw new Error("Invalid staff tenant");
+  }
+
+  const result = await masterPool.query(
+    `SELECT database_name
+     FROM tenants
+     WHERE id = $1`,
+    [staff.tenantId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("Organization not found");
+  }
+
+  if (result.rows[0].database_name !== databaseName) {
+    throw new Error("Unauthorized organization access");
+  }
+}
+
+
+// =========================
+// GET CUSTOMER FROM TOKEN
+// =========================
+
 function getCustomerFromToken(req) {
   const authHeader = req.headers.authorization;
 
@@ -26,10 +95,16 @@ function getCustomerFromToken(req) {
 
   const token = authHeader.split(" ")[1];
 
-  const decoded = jwt.verify(
-    token,
-    process.env.JWT_SECRET || "assessment-secret"
-  );
+  let decoded;
+
+  try {
+    decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "assessment-secret"
+    );
+  } catch (error) {
+    throw new Error("Invalid customer token");
+  }
 
   if (
     decoded.type !== "customer" ||
@@ -42,7 +117,10 @@ function getCustomerFromToken(req) {
 }
 
 
+// =========================
 // CUSTOMER CREATES ORDER
+// =========================
+
 async function createOrder(req, res) {
   let client;
 
@@ -51,25 +129,26 @@ async function createOrder(req, res) {
       databaseName,
       productId,
       quantity,
-      address
+      address,
+      paymentMethod
     } = req.body;
 
     if (
       !databaseName ||
       !productId ||
       !quantity ||
-      !address
+      !address ||
+      !paymentMethod
     ) {
       return res.status(400).json({
         message:
-          "databaseName, productId, quantity and address are required"
+          "databaseName, productId, quantity, address and paymentMethod are required"
       });
     }
 
     const customerId = getCustomerFromToken(req);
 
-    // Get global customer from MASTER database
-    const customerResult = await require("../config/db").query(
+    const customerResult = await masterPool.query(
       `SELECT id, name, email
        FROM customers
        WHERE id = $1`,
@@ -90,7 +169,6 @@ async function createOrder(req, res) {
 
     await client.query("BEGIN");
 
-    // Lock product row while purchasing
     const productResult = await client.query(
       `SELECT id, name, price, quantity
        FROM products
@@ -134,7 +212,6 @@ async function createOrder(req, res) {
     const totalAmount =
       Number(product.price) * requestedQuantity;
 
-    // Create order
     const orderResult = await client.query(
       `INSERT INTO orders
        (
@@ -142,16 +219,18 @@ async function createOrder(req, res) {
          customer_name,
          customer_email,
          address,
+         payment_method,
          status,
          total_amount
        )
-       VALUES ($1, $2, $3, $4, $5, $6)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
       [
         customer.id,
         customer.name,
         customer.email,
         address,
+        paymentMethod,
         "pending",
         totalAmount
       ]
@@ -159,7 +238,6 @@ async function createOrder(req, res) {
 
     const order = orderResult.rows[0];
 
-    // Create order item
     await client.query(
       `INSERT INTO order_items
        (
@@ -177,7 +255,6 @@ async function createOrder(req, res) {
       ]
     );
 
-    // Reduce inventory
     await client.query(
       `UPDATE products
        SET quantity = quantity - $1,
@@ -232,7 +309,13 @@ async function createOrder(req, res) {
 }
 
 
+// =========================
 // ORGANIZATION STAFF GET ORDERS
+// Inventory Manager: READ
+// Account Manager: READ
+// Admin: READ
+// =========================
+
 async function getOrders(req, res) {
   let client;
 
@@ -245,23 +328,40 @@ async function getOrders(req, res) {
       });
     }
 
+    const staff = getStaffFromToken(req);
+
+    if (
+      staff.role !== "admin" &&
+      staff.role !== "Inventory Manager" &&
+      staff.role !== "Account Manager"
+    ) {
+      return res.status(403).json({
+        message: "You do not have permission to view orders"
+      });
+    }
+
+    await verifyStaffTenantAccess(
+      staff,
+      databaseName
+    );
+
     client = getTenantClient(databaseName);
 
     await client.connect();
 
     const result = await client.query(
       `SELECT
-        o.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'product_id', oi.product_id,
-              'quantity', oi.quantity,
-              'price', oi.price
-            )
-          ) FILTER (WHERE oi.id IS NOT NULL),
-          '[]'
-        ) AS items
+         o.*,
+         COALESCE(
+           json_agg(
+             json_build_object(
+               'product_id', oi.product_id,
+               'quantity', oi.quantity,
+               'price', oi.price
+             )
+           ) FILTER (WHERE oi.id IS NOT NULL),
+           '[]'
+         ) AS items
        FROM orders o
        LEFT JOIN order_items oi
          ON oi.order_id = o.id
@@ -276,6 +376,25 @@ async function getOrders(req, res) {
   } catch (error) {
     console.error("Get orders error:", error);
 
+    if (
+      error.message === "Staff authentication required" ||
+      error.message === "Invalid staff token" ||
+      error.message === "Invalid staff tenant" ||
+      error.message === "Organization not found"
+    ) {
+      return res.status(401).json({
+        message: error.message
+      });
+    }
+
+    if (
+      error.message === "Unauthorized organization access"
+    ) {
+      return res.status(403).json({
+        message: error.message
+      });
+    }
+
     res.status(500).json({
       message: "Failed to get orders",
       error: error.message
@@ -289,7 +408,10 @@ async function getOrders(req, res) {
 }
 
 
+// =========================
 // GET SINGLE ORDER
+// =========================
+
 async function getOrder(req, res) {
   let client;
 
@@ -303,23 +425,40 @@ async function getOrder(req, res) {
       });
     }
 
+    const staff = getStaffFromToken(req);
+
+    if (
+      staff.role !== "admin" &&
+      staff.role !== "Inventory Manager" &&
+      staff.role !== "Account Manager"
+    ) {
+      return res.status(403).json({
+        message: "You do not have permission to view orders"
+      });
+    }
+
+    await verifyStaffTenantAccess(
+      staff,
+      databaseName
+    );
+
     client = getTenantClient(databaseName);
 
     await client.connect();
 
     const result = await client.query(
       `SELECT
-        o.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'product_id', oi.product_id,
-              'quantity', oi.quantity,
-              'price', oi.price
-            )
-          ) FILTER (WHERE oi.id IS NOT NULL),
-          '[]'
-        ) AS items
+         o.*,
+         COALESCE(
+           json_agg(
+             json_build_object(
+               'product_id', oi.product_id,
+               'quantity', oi.quantity,
+               'price', oi.price
+             )
+           ) FILTER (WHERE oi.id IS NOT NULL),
+           '[]'
+         ) AS items
        FROM orders o
        LEFT JOIN order_items oi
          ON oi.order_id = o.id
@@ -341,6 +480,23 @@ async function getOrder(req, res) {
   } catch (error) {
     console.error("Get order error:", error);
 
+    if (
+      error.message === "Staff authentication required" ||
+      error.message === "Invalid staff token"
+    ) {
+      return res.status(401).json({
+        message: error.message
+      });
+    }
+
+    if (
+      error.message === "Unauthorized organization access"
+    ) {
+      return res.status(403).json({
+        message: error.message
+      });
+    }
+
     res.status(500).json({
       message: "Failed to get order",
       error: error.message
@@ -354,7 +510,13 @@ async function getOrder(req, res) {
 }
 
 
+// =========================
 // UPDATE ORDER STATUS
+// Account Manager: UPDATE
+// Admin: UPDATE
+// Inventory Manager: READ ONLY
+// =========================
+
 async function updateOrderStatus(req, res) {
   let client;
 
@@ -362,12 +524,29 @@ async function updateOrderStatus(req, res) {
     const { id } = req.params;
     const { databaseName, status } = req.body;
 
+    const staff = getStaffFromToken(req);
+
+    if (
+      staff.role !== "admin" &&
+      staff.role !== "Account Manager"
+    ) {
+      return res.status(403).json({
+        message:
+          "Only Admin or Account Manager can update order status"
+      });
+    }
+
     if (!databaseName || !status) {
       return res.status(400).json({
         message:
           "databaseName and status are required"
       });
     }
+
+    await verifyStaffTenantAccess(
+      staff,
+      databaseName
+    );
 
     const allowedStatuses = [
       "pending",
@@ -419,6 +598,23 @@ async function updateOrderStatus(req, res) {
       error
     );
 
+    if (
+      error.message === "Staff authentication required" ||
+      error.message === "Invalid staff token"
+    ) {
+      return res.status(401).json({
+        message: error.message
+      });
+    }
+
+    if (
+      error.message === "Unauthorized organization access"
+    ) {
+      return res.status(403).json({
+        message: error.message
+      });
+    }
+
     res.status(500).json({
       message: "Failed to update order status",
       error: error.message
@@ -432,7 +628,10 @@ async function updateOrderStatus(req, res) {
 }
 
 
+// =========================
 // CUSTOMER ORDER TRACKING
+// =========================
+
 async function getCustomerOrders(req, res) {
   let client;
 
@@ -453,29 +652,30 @@ async function getCustomerOrders(req, res) {
 
     const result = await client.query(
       `SELECT
-        o.id,
-        o.customer_id,
-        o.customer_name,
-        o.customer_email,
-        o.address,
-        o.status,
-        o.total_amount,
-        o.created_at,
-        o.updated_at,
+         o.id,
+         o.customer_id,
+         o.customer_name,
+         o.customer_email,
+         o.address,
+         o.payment_method,
+         o.status,
+         o.total_amount,
+         o.created_at,
+         o.updated_at,
 
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'product_id', oi.product_id,
-              'product_name', p.name,
-              'product_description', p.description,
-              'quantity', oi.quantity,
-              'price', oi.price,
-              'line_total', oi.quantity * oi.price
-            )
-          ) FILTER (WHERE oi.id IS NOT NULL),
-          '[]'
-        ) AS items
+         COALESCE(
+           json_agg(
+             json_build_object(
+               'product_id', oi.product_id,
+               'product_name', p.name,
+               'product_description', p.description,
+               'quantity', oi.quantity,
+               'price', oi.price,
+               'line_total', oi.quantity * oi.price
+             )
+           ) FILTER (WHERE oi.id IS NOT NULL),
+           '[]'
+         ) AS items
 
        FROM orders o
 

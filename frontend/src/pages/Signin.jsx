@@ -38,22 +38,31 @@ function Signin() {
 
       const user = response.data.user;
 
-localStorage.setItem(
-  "organization",
-  JSON.stringify({
-    organizationId: response.data.user.organizationId,
-    name: response.data.user.organizationName,
-    organizationName: response.data.user.organizationName,
-    databaseName: response.data.user.databaseName
-  })
-);
+      localStorage.setItem(
+        "organization",
+        JSON.stringify({
+          organizationId: response.data.user.organizationId,
+          name: response.data.user.organizationName,
+          organizationName: response.data.user.organizationName,
+          databaseName: response.data.user.databaseName
+        })
+      );
 
-localStorage.setItem(
-  "user",
-  JSON.stringify(user)
-);
+      localStorage.setItem(
+        "user",
+        JSON.stringify(user)
+      );
 
-      navigate("/dashboard");
+      // Role-based redirect
+      if (response.data.user.role === "admin") {
+        navigate("/dashboard");
+      } else if (response.data.user.role === "Inventory Manager") {
+        navigate("/inventory-dashboard");
+      } else if (response.data.user.role === "Account Manager") {
+        navigate("/account-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
 
     } catch (err) {
       setError(

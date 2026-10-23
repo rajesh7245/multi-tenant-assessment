@@ -12,6 +12,8 @@ import CustomerSignin from "./pages/CustomerSignin";
 import CustomerHome from "./pages/CustomerHome";
 import CustomerStore from "./pages/CustomerStore";
 import CustomerTracking from "./pages/CustomerTracking";
+import InventoryDashboard from "./pages/InventoryDashboard";
+import AccountDashboard from "./pages/AccountDashboard";
 import "./App.css";
 
 function LandingPage() {
@@ -594,6 +596,8 @@ function App() {
   path="/tracking"
   element={<CustomerTracking />}
 />
+<Route path="/inventory-dashboard" element={<InventoryDashboard />} />
+<Route path="/account-dashboard" element={<AccountDashboard />} />
 <Route
   path="/customer-signin"
   element={<CustomerSignin />}

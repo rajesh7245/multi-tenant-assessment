@@ -50,11 +50,15 @@ async function createTenantTables(connectionString) {
         description TEXT,
         price NUMERIC(12,2) NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 0,
+        is_public BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
-       
-      
+
+      /* Add public flag to existing tenant databases */
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT FALSE;
+
 
       /* =========================
          ORDERS
@@ -62,14 +66,25 @@ async function createTenantTables(connectionString) {
 
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
+        customer_id INTEGER,
         customer_name VARCHAR(150) NOT NULL,
         customer_email VARCHAR(255) NOT NULL,
         address TEXT NOT NULL,
+        payment_method VARCHAR(50) NOT NULL DEFAULT 'Cash on Delivery',
         status VARCHAR(50) NOT NULL DEFAULT 'PLACED',
         total_amount NUMERIC(12,2) NOT NULL,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
+
+      /* Add customer_id to existing tenant databases */
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS customer_id INTEGER;
+
+      /* Add payment_method to existing tenant databases */
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)
+      NOT NULL DEFAULT 'Cash on Delivery';
 
 
       /* =========================
@@ -124,7 +139,7 @@ async function createTenantTables(connectionString) {
       VALUES
         (
           'Inventory Manager',
-          'Can create, update and delete products and view orders'
+          'Can create, update and delete products, manage product visibility and view orders'
         ),
         (
           'Account Manager',
@@ -202,10 +217,18 @@ async function createTenantTables(connectionString) {
       ON CONFLICT DO NOTHING;
     `);
 
-    console.log("Tenant tables, roles and permissions created successfully.");
+    console.log(
+      "Tenant tables, roles and permissions created successfully."
+    );
+
   } catch (error) {
-    console.error("Error creating tenant tables:", error);
+    console.error(
+      "Error creating tenant tables:",
+      error
+    );
+
     throw error;
+
   } finally {
     await pool.end();
   }

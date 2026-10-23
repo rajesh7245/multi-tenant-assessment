@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Employees.css";
+
 function Employees() {
   const [employees, setEmployees] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -16,28 +17,36 @@ function Employees() {
     roleId: "",
   });
 
-function getStoredObject(key) {
-  try {
-    const value = localStorage.getItem(key);
+  function getStoredObject(key) {
+    try {
+      const value = localStorage.getItem(key);
 
-    if (!value || value === "undefined" || value === "null") {
+      if (!value || value === "undefined" || value === "null") {
+        return {};
+      }
+
+      return JSON.parse(value);
+    } catch (error) {
+      console.error(`Failed to read ${key} from localStorage`, error);
       return {};
     }
-
-    return JSON.parse(value);
-  } catch (error) {
-    console.error(`Failed to read ${key} from localStorage`, error);
-    return {};
   }
-}
 
-const user = getStoredObject("user");
-const organization = getStoredObject("organization");
+  const user = getStoredObject("user");
+  const organization = getStoredObject("organization");
 
   const databaseName =
     user.databaseName || organization.databaseName;
 
+  const token =
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken");
+
   const API_URL = "http://localhost:5000/api/employees";
+
+  const authHeaders = {
+    Authorization: `Bearer ${token}`,
+  };
 
   async function loadRoles() {
     try {
@@ -51,7 +60,10 @@ const organization = getStoredObject("organization");
       const response = await fetch(
         `${API_URL}/roles?databaseName=${encodeURIComponent(
           databaseName
-        )}`
+        )}`,
+        {
+          headers: authHeaders,
+        }
       );
 
       const data = await response.json();
@@ -81,7 +93,10 @@ const organization = getStoredObject("organization");
       const response = await fetch(
         `${API_URL}?databaseName=${encodeURIComponent(
           databaseName
-        )}`
+        )}`,
+        {
+          headers: authHeaders,
+        }
       );
 
       const data = await response.json();
@@ -131,6 +146,7 @@ const organization = getStoredObject("organization");
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           databaseName,
@@ -183,6 +199,9 @@ const organization = getStoredObject("organization");
         )}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -204,7 +223,6 @@ const organization = getStoredObject("organization");
 
   return (
     <div className="page">
-      {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="brand-icon">M</div>
@@ -232,9 +250,7 @@ const organization = getStoredObject("organization");
             🛒 Orders
           </Link>
 
-          <Link to="/tracking">
-            📍 Customer Tracking
-          </Link>
+         
         </nav>
 
         <div className="sidebar-bottom">
@@ -259,7 +275,6 @@ const organization = getStoredObject("organization");
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
       <main className="main-content">
         <div className="top-header">
           <div>
@@ -299,7 +314,6 @@ const organization = getStoredObject("organization");
         )}
 
         <section className="product-layout">
-          {/* ADD EMPLOYEE */}
           <div className="product-form-card">
             <div className="card-heading">
               <div>
@@ -376,7 +390,6 @@ const organization = getStoredObject("organization");
             </form>
           </div>
 
-          {/* EMPLOYEE LIST */}
           <div className="products-card">
             <div className="card-heading">
               <div>
@@ -476,7 +489,6 @@ const organization = getStoredObject("organization");
           </div>
         </section>
 
-        {/* ROLE INFORMATION */}
         <section className="card role-information">
           <div className="card-heading">
             <div>

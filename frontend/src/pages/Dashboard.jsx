@@ -47,6 +47,9 @@ function Dashboard() {
 
   const [subscription, setSubscription] = useState(null);
 
+  // Added: products state for dashboard count
+  const [products, setProducts] = useState([]);
+
   useEffect(() => {
     if (!tenantId) {
       console.warn("Tenant ID not available for subscription lookup");
@@ -64,6 +67,41 @@ function Dashboard() {
         console.error("Subscription error:", error);
       });
   }, [tenantId]);
+
+  // Added: load products from the organization's tenant database
+  useEffect(() => {
+    if (!databaseName || databaseName === "N/A") {
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    axios
+      .get(
+        `http://localhost:5000/api/products?databaseName=${encodeURIComponent(
+          databaseName
+        )}`,
+        {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : {},
+        }
+      )
+      .then((response) => {
+        const productData =
+          response.data?.products || response.data || [];
+
+        setProducts(
+          Array.isArray(productData) ? productData : []
+        );
+      })
+      .catch((error) => {
+        console.error("Products lookup error:", error);
+        setProducts([]);
+      });
+  }, [databaseName]);
 
   const formatDate = (date) => {
     if (!date) return "N/A";
@@ -243,7 +281,10 @@ function Dashboard() {
 
             <div>
               <span>Products</span>
-              <strong>0</strong>
+
+              {/* Database-backed product count */}
+              <strong>{products.length}</strong>
+
               <small>Manage inventory</small>
             </div>
 
@@ -285,9 +326,11 @@ function Dashboard() {
 
             <div>
               <span>Your Role</span>
+
               <strong className="role-stat">
                 {role}
               </strong>
+
               <small>Access level</small>
             </div>
 
@@ -302,6 +345,7 @@ function Dashboard() {
           <div className="dashboard-card">
 
             <div className="card-header">
+
               <div>
                 <span className="card-label">
                   ORGANIZATION
@@ -313,6 +357,7 @@ function Dashboard() {
               <div className="card-header-icon">
                 🏢
               </div>
+
             </div>
 
             <div className="details-list">
@@ -339,9 +384,11 @@ function Dashboard() {
 
               <div className="detail-row">
                 <span>Role</span>
+
                 <strong className="role-badge">
                   {role}
                 </strong>
+
               </div>
 
             </div>
@@ -352,6 +399,7 @@ function Dashboard() {
           <div className="dashboard-card">
 
             <div className="card-header">
+
               <div>
                 <span className="card-label">
                   SUBSCRIPTION
@@ -363,13 +411,16 @@ function Dashboard() {
               <div className="card-header-icon">
                 💳
               </div>
+
             </div>
 
             {subscription ? (
+
               <div className="details-list">
 
                 <div className="detail-row">
                   <span>Plan</span>
+
                   <strong>
                     {subscription.plan}
                   </strong>
@@ -377,6 +428,7 @@ function Dashboard() {
 
                 <div className="detail-row">
                   <span>Status</span>
+
                   <strong className="role-badge">
                     {subscription.status}
                   </strong>
@@ -384,6 +436,7 @@ function Dashboard() {
 
                 <div className="detail-row">
                   <span>Trial Start</span>
+
                   <strong>
                     {formatDate(subscription.trial_start)}
                   </strong>
@@ -391,6 +444,7 @@ function Dashboard() {
 
                 <div className="detail-row">
                   <span>Trial End</span>
+
                   <strong>
                     {formatDate(subscription.trial_end)}
                   </strong>
@@ -398,18 +452,22 @@ function Dashboard() {
 
                 <div className="detail-row">
                   <span>Subscription Created</span>
+
                   <strong>
                     {formatDate(subscription.created_at)}
                   </strong>
                 </div>
 
               </div>
+
             ) : (
+
               <div style={{ padding: "20px 0" }}>
                 <p style={{ margin: 0 }}>
                   Subscription information unavailable.
                 </p>
               </div>
+
             )}
 
           </div>
@@ -420,6 +478,7 @@ function Dashboard() {
         <section className="dashboard-card">
 
           <div className="card-header">
+
             <div>
               <span className="card-label">
                 QUICK ACTIONS
@@ -431,6 +490,7 @@ function Dashboard() {
             <div className="card-header-icon">
               ⚡
             </div>
+
           </div>
 
           <div className="quick-actions">
@@ -439,72 +499,84 @@ function Dashboard() {
               to="/products"
               className="quick-action"
             >
+
               <div className="quick-action-icon purple-bg">
                 📦
               </div>
 
               <div>
                 <strong>Manage Products</strong>
+
                 <span>
                   Add, edit and delete products
                 </span>
               </div>
 
               <b>→</b>
+
             </Link>
 
             <Link
               to="/employees"
               className="quick-action"
             >
+
               <div className="quick-action-icon blue-bg">
                 👥
               </div>
 
               <div>
                 <strong>Manage Employees</strong>
+
                 <span>
                   Add employees and assign roles
                 </span>
               </div>
 
               <b>→</b>
+
             </Link>
 
             <Link
               to="/orders"
               className="quick-action"
             >
+
               <div className="quick-action-icon green-bg">
                 🛒
               </div>
 
               <div>
                 <strong>Manage Orders</strong>
+
                 <span>
                   View and update customer orders
                 </span>
               </div>
 
               <b>→</b>
+
             </Link>
 
             <Link
               to="/tracking"
               className="quick-action"
             >
+
               <div className="quick-action-icon orange-bg">
                 📍
               </div>
 
               <div>
                 <strong>Order Tracking</strong>
+
                 <span>
                   Track customer purchases
                 </span>
               </div>
 
               <b>→</b>
+
             </Link>
 
           </div>
