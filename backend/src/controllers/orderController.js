@@ -3,6 +3,10 @@ const jwt = require("jsonwebtoken");
 
 const masterPool = require("../config/db");
 
+// =========================
+// TENANT CLIENT
+// =========================
+
 function getTenantClient(databaseName) {
   if (!databaseName) {
     throw new Error("databaseName is required");
@@ -18,7 +22,6 @@ function getTenantClient(databaseName) {
     }
   });
 }
-
 
 // =========================
 // GET STAFF FROM TOKEN
@@ -55,7 +58,6 @@ function getStaffFromToken(req) {
   return decoded;
 }
 
-
 // =========================
 // VERIFY STAFF TENANT ACCESS
 // =========================
@@ -80,7 +82,6 @@ async function verifyStaffTenantAccess(staff, databaseName) {
     throw new Error("Unauthorized organization access");
   }
 }
-
 
 // =========================
 // GET CUSTOMER FROM TOKEN
@@ -115,7 +116,6 @@ function getCustomerFromToken(req) {
 
   return decoded.customerId;
 }
-
 
 // =========================
 // CUSTOMER CREATES ORDER
@@ -166,6 +166,28 @@ async function createOrder(req, res) {
     client = getTenantClient(databaseName);
 
     await client.connect();
+
+    // Ensure older tenant databases have all required order columns.
+    await client.query(`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS customer_id INTEGER,
+      ADD COLUMN IF NOT EXISTS customer_name VARCHAR(150),
+      ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS address TEXT,
+      ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'pending',
+      ADD COLUMN IF NOT EXISTS total_amount NUMERIC(12,2),
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    `);
+
+    await client.query(`
+      ALTER TABLE order_items
+      ADD COLUMN IF NOT EXISTS order_id INTEGER,
+      ADD COLUMN IF NOT EXISTS product_id INTEGER,
+      ADD COLUMN IF NOT EXISTS quantity INTEGER,
+      ADD COLUMN IF NOT EXISTS price NUMERIC(12,2)
+    `);
 
     await client.query("BEGIN");
 
@@ -308,7 +330,6 @@ async function createOrder(req, res) {
   }
 }
 
-
 // =========================
 // ORGANIZATION STAFF GET ORDERS
 // Inventory Manager: READ
@@ -406,7 +427,6 @@ async function getOrders(req, res) {
     }
   }
 }
-
 
 // =========================
 // GET SINGLE ORDER
@@ -508,7 +528,6 @@ async function getOrder(req, res) {
     }
   }
 }
-
 
 // =========================
 // UPDATE ORDER STATUS
@@ -627,7 +646,6 @@ async function updateOrderStatus(req, res) {
   }
 }
 
-
 // =========================
 // CUSTOMER ORDER TRACKING
 // =========================
@@ -724,6 +742,9 @@ async function getCustomerOrders(req, res) {
   }
 }
 
+// =========================
+// EXPORTS
+// =========================
 
 module.exports = {
   createOrder,
