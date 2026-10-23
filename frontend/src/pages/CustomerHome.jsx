@@ -60,6 +60,10 @@ function CustomerHome() {
     );
   };
 
+  const handlePremiumClick = () => {
+    navigate("/customer-payment?planId=2");
+  };
+
   const filteredOrganizations = organizations.filter(
     (organization) =>
       organization.name
@@ -69,6 +73,10 @@ function CustomerHome() {
         .toLowerCase()
         .includes(search.toLowerCase())
   );
+
+  const isPremium =
+    customer?.subscription_plan_id === 2 &&
+    customer?.subscription_status !== "free";
 
   return (
     <div
@@ -167,6 +175,19 @@ function CustomerHome() {
                 >
                   My Orders
                 </Link>
+
+                <a
+                  href="#subscription"
+                  style={{
+                    textDecoration: "none",
+                    color: "#5b4bdb",
+                    fontWeight: "700",
+                    fontSize: "14px",
+                    padding: "9px 12px"
+                  }}
+                >
+                  Subscription
+                </a>
 
                 <button
                   type="button"
@@ -349,6 +370,373 @@ function CustomerHome() {
           />
         </div>
       </section>
+
+      {/* CUSTOMER SUBSCRIPTION SECTION */}
+
+      {customer?.id && (
+        <section
+          id="subscription"
+          style={{
+            maxWidth: "1200px",
+            margin: "0 auto",
+            padding: "10px 24px 55px"
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              border: "1px solid #e8eaf0",
+              borderRadius: "20px",
+              padding: "35px",
+              boxShadow:
+                "0 8px 30px rgba(30,35,60,0.05)"
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                marginBottom: "30px"
+              }}
+            >
+              <div
+                style={{
+                  color: "#5b4bdb",
+                  fontWeight: "700",
+                  fontSize: "13px",
+                  textTransform: "uppercase",
+                  letterSpacing: "1px"
+                }}
+              >
+                Customer Membership
+              </div>
+
+              <h2
+                style={{
+                  fontSize: "32px",
+                  margin: "7px 0 10px"
+                }}
+              >
+                Choose Your Subscription
+              </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: "#747b8c"
+                }}
+              >
+                Get additional benefits while shopping
+                across the marketplace.
+              </p>
+            </div>
+
+            {/* CURRENT SUBSCRIPTION */}
+
+            <div
+              style={{
+                background: "#f7f7fb",
+                borderRadius: "12px",
+                padding: "15px 18px",
+                marginBottom: "28px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "15px",
+                flexWrap: "wrap"
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    color: "#73798a",
+                    marginBottom: "4px"
+                  }}
+                >
+                  Current Subscription
+                </div>
+
+                <strong
+                  style={{
+                    fontSize: "17px"
+                  }}
+                >
+                  {customer?.subscriptionPlan?.name ||
+                    (customer?.subscription_plan_id === 2
+                      ? "Premium"
+                      : "Free")}
+                </strong>
+              </div>
+
+              <div
+                style={{
+                  padding: "7px 12px",
+                  borderRadius: "20px",
+                  background: isPremium
+                    ? "#e8f7ee"
+                    : "#eeecff",
+                  color: isPremium
+                    ? "#218838"
+                    : "#5b4bdb",
+                  fontSize: "13px",
+                  fontWeight: "700"
+                }}
+              >
+                {customer?.subscription_status || "free"}
+              </div>
+            </div>
+
+            {/* PLANS */}
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "22px"
+              }}
+            >
+              {/* FREE PLAN */}
+
+              <div
+                style={{
+                  border: "1px solid #e2e4eb",
+                  borderRadius: "16px",
+                  padding: "28px",
+                  background: "#fff"
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "#73798a",
+                    fontWeight: "700",
+                    marginBottom: "8px"
+                  }}
+                >
+                  BASIC
+                </div>
+
+                <h3
+                  style={{
+                    fontSize: "26px",
+                    margin: "0 0 8px"
+                  }}
+                >
+                  Free
+                </h3>
+
+                <div
+                  style={{
+                    fontSize: "30px",
+                    fontWeight: "800",
+                    marginBottom: "8px"
+                  }}
+                >
+                  ₹0
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      color: "#777",
+                      fontWeight: "400"
+                    }}
+                  >
+                    /month
+                  </span>
+                </div>
+
+                <p
+                  style={{
+                    color: "#73798a",
+                    fontSize: "14px"
+                  }}
+                >
+                  Standard marketplace access.
+                </p>
+
+                <ul
+                  style={{
+                    paddingLeft: "20px",
+                    color: "#4d5363",
+                    lineHeight: "1.9",
+                    fontSize: "14px"
+                  }}
+                >
+                  <li>Standard Delivery</li>
+                  <li>Order Tracking</li>
+                </ul>
+
+                <div
+                  style={{
+                    marginTop: "22px",
+                    padding: "11px",
+                    textAlign: "center",
+                    background: "#f1f1f5",
+                    color: "#777",
+                    borderRadius: "8px",
+                    fontWeight: "600"
+                  }}
+                >
+                  Current Free Plan
+                </div>
+              </div>
+
+              {/* PREMIUM PLAN */}
+
+              <div
+                style={{
+                  border: "2px solid #5b4bdb",
+                  borderRadius: "16px",
+                  padding: "28px",
+                  background:
+                    "linear-gradient(180deg, #faf9ff 0%, #fff 100%)",
+                  position: "relative",
+                  boxShadow:
+                    "0 10px 30px rgba(91,75,219,0.10)"
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "15px",
+                    right: "15px",
+                    background: "#5b4bdb",
+                    color: "#fff",
+                    padding: "5px 10px",
+                    borderRadius: "20px",
+                    fontSize: "11px",
+                    fontWeight: "700"
+                  }}
+                >
+                  POPULAR
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "#5b4bdb",
+                    fontWeight: "700",
+                    marginBottom: "8px"
+                  }}
+                >
+                  PREMIUM
+                </div>
+
+                <h3
+                  style={{
+                    fontSize: "26px",
+                    margin: "0 0 8px"
+                  }}
+                >
+                  Premium
+                </h3>
+
+                <div
+                  style={{
+                    fontSize: "30px",
+                    fontWeight: "800",
+                    marginBottom: "8px"
+                  }}
+                >
+                  ₹199
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      color: "#777",
+                      fontWeight: "400"
+                    }}
+                  >
+                    /month
+                  </span>
+                </div>
+
+                <p
+                  style={{
+                    color: "#73798a",
+                    fontSize: "14px"
+                  }}
+                >
+                  Enjoy premium shopping benefits.
+                </p>
+
+                <ul
+                  style={{
+                    paddingLeft: "20px",
+                    color: "#4d5363",
+                    lineHeight: "1.9",
+                    fontSize: "14px"
+                  }}
+                >
+                  <li>Free Delivery</li>
+                  <li>Priority Processing</li>
+                  <li>Order Tracking</li>
+                  <li>Premium Support</li>
+                  <li>7-Day Free Trial</li>
+                </ul>
+
+                {isPremium ? (
+                  <div
+                    style={{
+                      marginTop: "22px",
+                      padding: "11px",
+                      textAlign: "center",
+                      background: "#e8f7ee",
+                      color: "#218838",
+                      borderRadius: "8px",
+                      fontWeight: "700"
+                    }}
+                  >
+                    Premium Active
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handlePremiumClick}
+                    style={{
+                      width: "100%",
+                      marginTop: "22px",
+                      padding: "13px",
+                      border: "none",
+                      borderRadius: "9px",
+                      background: "#5b4bdb",
+                      color: "#fff",
+                      cursor: "pointer",
+                      fontSize: "15px",
+                      fontWeight: "700"
+                    }}
+                  >
+                    Choose Premium →
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* TRIAL INFORMATION */}
+
+            {customer?.subscription_status === "trial" &&
+              customer?.trial_end && (
+                <div
+                  style={{
+                    marginTop: "25px",
+                    padding: "15px 18px",
+                    background: "#fff8e6",
+                    color: "#8a6200",
+                    borderRadius: "10px",
+                    fontSize: "14px"
+                  }}
+                >
+                  🎁 Your free trial is active until{" "}
+                  <strong>
+                    {new Date(
+                      customer.trial_end
+                    ).toLocaleDateString()}
+                  </strong>
+                  .
+                </div>
+              )}
+          </div>
+        </section>
+      )}
 
       {/* ORGANIZATIONS */}
 

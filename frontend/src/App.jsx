@@ -14,6 +14,7 @@ import CustomerStore from "./pages/CustomerStore";
 import CustomerTracking from "./pages/CustomerTracking";
 import InventoryDashboard from "./pages/InventoryDashboard";
 import AccountDashboard from "./pages/AccountDashboard";
+import CustomerPayment from "./pages/CustomerPayment";
 import "./App.css";
 
 function LandingPage() {
@@ -577,6 +578,10 @@ function App() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/products" element={<Products />} />
       <Route path="/orders" element={<Orders />} />
+      <Route
+  path="/customer-payment"
+  element={<CustomerPayment />}
+/>
       <Route
   path="/customer-order"
   element={<CustomerOrder />}
